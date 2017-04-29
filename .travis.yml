@@ -1,0 +1,39 @@
+env:
+  global:
+  - CGO_ENABLED=0
+  - REPO=d1ablorus/checker-server
+language: go
+go:
+- tip
+
+install:
+- go get github.com/julienschmidt/httprouter
+- go get github.com/kelseyhightower/envconfig
+- go get github.com/lib/pq
+
+services:
+- docker
+
+script:
+- go build -o ./checker-server -ldflags '-s' .
+- if [ -n "$TRAVIS_TAG" ]; then
+  docker build -t $REPO .;
+  docker tag $REPO:latest $REPO:$TRAVIS_TAG;
+  docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
+  docker push $REPO;
+  docker push $REPO:$TRAVIS_TAG;
+  docker rmi -f $REPO $REPO:$TRAVIS_TAG;
+  fi
+
+before_deploy:
+- export FILE_TO_UPLOAD=$(ls ./checker-server)
+
+deploy:
+  provider: releases
+  api_key:
+    secure: ceG/rLDhFCPdUwiqzTt2NskFCRvad0jO2M5I/cde3dTPkUyioz8dovJ4n/qV7HkXkxCmKXMfHPBP9y8xAP88N3/b+ZB77QTRHQWuxMcOD7CrsSFQVbz5nbNAaAfLEXaDSrtIu79cextxoHHlg83Epmak/z6pxn++BQTJRLJv9dmaG03r3yeQhknpWi9pPgUrEC5FX6z/H62W4Mk8+XXG87mjuZ2ZwtsuNp55W2t9ZNvHBnc51YAymzpJqwoAOPbfwJOr3+C8bM56KUg6h88cQjiMyHoB/loX258nehvTxpIgRwXL+cyml/QTo30V8G3r36UPLC1Ym2dJKhm27l5jwbHnuBZuU51P6y1fityXhvwDpdr48e/tzsIRs5g0DC75rZ/m4B/DfnUHdaafcEXia0cXS/YGIRYN0fKBvwPykPcQ21UMpUktpBv5S5iOkU6oz56mluMDJat1oE6dSvfCtqcO6KqfkJyP1tkHze78sXL5Npt2IbdMhf0h4B61PnCbvpDRtRo+pTutR9XNXfD0iNNQ5ezrFHO+wS6fJf+vkzJW8V1cT6Aex0tte6N0nkcpq1UDgD+wmOXD2ysLKbrzMcPXMWwGEmJDAgX0b2zuox5ZR59xU1qrHQbA7hXSqQQtXQU2HHApzsb150vFPWEYOyYCi0vbjZP6fSYF/X//D9o=
+  file: ${FILE_TO_UPLOAD}
+  skip_cleanup: true
+  on:
+    repo: D1abloRUS/checker-server
+    tags: true
