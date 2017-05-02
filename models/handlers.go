@@ -80,10 +80,10 @@ func Activate(env *config.Env) httprouter.Handle {
 	}
 }
 
-//StatusUpdate post /api/v1/statusupdate  json {"id": 1, "status": 0}
+//StatusUpdate post /api/v1/statusupdate  json [{"id": 1, "status": 0},{N}]
 func StatusUpdate(env *config.Env) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		var s Status
+		var status []Status
 
 		if r.Method != "POST" {
 			http.Error(w, http.StatusText(405), 405)
@@ -94,12 +94,13 @@ func StatusUpdate(env *config.Env) httprouter.Handle {
 			return
 		}
 
-		err := json.NewDecoder(r.Body).Decode(&s)
+		err := json.NewDecoder(r.Body).Decode(&status)
 		FailOnHtpp(err, w, "json error", 400)
 
-		err = UpdateStatus(env.DB, s.ID, s.Status)
-		FailOnHtpp(err, w, "task not found", 500)
-
+		for s := range status {
+			err = UpdateStatus(env.DB, status[s].ID, status[s].Status)
+			FailOnHtpp(err, w, "task not found", 500)
+		}
 		w.WriteHeader(200)
 	}
 }
